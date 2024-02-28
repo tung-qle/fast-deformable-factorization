@@ -12,7 +12,7 @@ do
     do
       for hierarchical_order in left-to-right balanced
       do
-        python script/hierarchical_comp_new.py \
+        python hierarchical_comp_new.py \
           --n-factors $n_factors \
           --rank $rank \
           --noise $noise \
