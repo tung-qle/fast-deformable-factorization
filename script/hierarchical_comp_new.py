@@ -20,7 +20,7 @@ def parse_arg():
     parser.add_argument("--n-factors", type=int, default=4, help="Number of factors.")
     parser.add_argument("--rank", type=int, default=2, help="Rank of subblocks")
     parser.add_argument("--noise", type=float, default=0.1, help="Std of gaussian noise")
-    parser.add_argument("--matrix-size", type=int, nargs='+', default=128)
+    parser.add_argument("--matrix-size", type=int, default=128)
     parser.add_argument("--seed-target-matrix", type=int, default=1, help="Seed for generating the target matrix")
     parser.add_argument("--orthonormalize", choices=["True", "False"], default="True")
     parser.add_argument("--hierarchical-order", choices=["left-to-right", "balanced"], default="left-to-right")
