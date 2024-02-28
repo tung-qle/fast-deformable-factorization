@@ -4,5 +4,11 @@ setup(
     name = 'src',
     packages = find_packages(),
     version = '0.1.0',
-    requires=['einops'],
+    requires=[
+        "einops",
+        "torch",
+        "pandas",
+        "scipy",
+
+    ],
 )
