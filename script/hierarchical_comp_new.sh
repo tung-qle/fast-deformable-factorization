@@ -2,7 +2,7 @@ n_factors=4
 rank=2
 noise=0.1
 
-save_dir="./results/hierarchical_comp_new"
+save_dir="results/hierarchical_comp_new"
 
 for matrix_size in 128 256 512 1024 2048 4096 8192
 do
