@@ -4,17 +4,20 @@ n_adam_epochs=100
 n_lbfgs_epochs=20
 n_als_epochs=5
 
-for k in 9 10 11 12 13
+for k in 9 10 11 12
 do
   # hierarchical algo
   for orthonormalize in True False
   do
-
-    python comparison_new.py \
-      --results-dir $results_dir \
-      --k $k \
-      --method hierarchical \
-      --orthonormalize $orthonormalize
+    for hierarchical_order in left-to-right balanced
+    do
+      python comparison_new.py \
+        --results-dir $results_dir \
+        --k $k \
+        --method hierarchical \
+        --orthonormalize $orthonormalize \
+        --hierarchical-order $hierarchical_order
+    done
   done
 
   # gradient algo
