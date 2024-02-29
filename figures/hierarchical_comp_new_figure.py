@@ -48,7 +48,8 @@ if __name__ == '__main__':
             matrix_sizes = time_df_local.index.levels[0]
             print(time_df_local)
             print(matrix_sizes)
-            ax.errorbar(matrix_sizes, time_df_local["time_mean"], yerr=time_df_local["time_std"], marker="x", label="With orthonormalization" if orthonormalize else "Without orthonormalization")
+            ax.errorbar(matrix_sizes, time_df_local["time_mean"], yerr=time_df_local["time_std"], marker="x",
+                        label="With orthonormalization" if orthonormalize else "Without orthonormalization")
 
         ax.set_yscale("log")
         # set log scale in base 2
@@ -70,9 +71,11 @@ if __name__ == '__main__':
 
     elif args.graph == "error":
         # Error comparison
-        error_mean = df[["orthonormalize", "matrix-size", "error-relative"]].groupby(["matrix-size", "orthonormalize"]).mean()
+        error_mean = df[["orthonormalize", "matrix-size", "error-relative"]].groupby(
+            ["matrix-size", "orthonormalize"]).mean()
         error_mean = error_mean.rename(columns={"error-relative": "error_mean"})
-        error_std = df[["orthonormalize", "matrix-size", "error-relative"]].groupby(["matrix-size", "orthonormalize"]).std()
+        error_std = df[["orthonormalize", "matrix-size", "error-relative"]].groupby(
+            ["matrix-size", "orthonormalize"]).std()
         error_std = error_std.rename(columns={"error-relative": "error_std"})
         error_df = error_mean.join(error_std)
 
@@ -81,7 +84,8 @@ if __name__ == '__main__':
         for orthonormalize in [True, False]:
             error_df_local = error_df.loc[(slice(None), orthonormalize), :]
             matrix_sizes = error_df_local.index.levels[0]
-            ax.errorbar(matrix_sizes, error_df_local["error_mean"], yerr=error_df_local["error_std"], marker="x", label="With orthonormalization" if orthonormalize else "Without orthonormalization")
+            ax.errorbar(matrix_sizes, error_df_local["error_mean"], yerr=error_df_local["error_std"], marker="x",
+                        label="With orthonormalization" if orthonormalize else "Without orthonormalization")
 
         # show as horizontal bar the noise level
         noise_level = args.noise

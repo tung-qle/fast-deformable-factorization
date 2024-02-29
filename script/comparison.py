@@ -21,7 +21,7 @@ def parse_arg():
                     "We use our own implementation of a first-order optimization method. "
                     "The target matrix is the Hadamard matrix.")
 
-    parser.add_argument("--k", type=int, default=10, help="Number of factors.")
+    parser.add_argument("--k", type=int, default=9, help="Number of factors.")
     parser.add_argument("--lr", type=float, default=0.1, help="Learning rate of Adam for iterative method")
     parser.add_argument("--n_adam_epochs", default=100, help="Number of ADAM iterations")
     parser.add_argument("--n_lbfgs_epochs", default=20, help="Number of LBFGS iterations")
