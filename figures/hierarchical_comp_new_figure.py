@@ -41,26 +41,30 @@ if __name__ == '__main__':
         time_df = time_mean.join(time_std)
         print(time_df)
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(5, 4))
         # plot time vs matrix size with error bars following std
         for orthonormalize in [True, False]:
             time_df_local = time_df.loc[(slice(None), orthonormalize), :]
             matrix_sizes = time_df_local.index.levels[0]
             print(time_df_local)
             print(matrix_sizes)
-            ax.errorbar(matrix_sizes, time_df_local["time_mean"], yerr=time_df_local["time_std"], marker="x", label=f"orthonormalize={orthonormalize}")
+            ax.errorbar(matrix_sizes, time_df_local["time_mean"], yerr=time_df_local["time_std"], marker="x", label="With orthonormalization" if orthonormalize else "Without orthonormalization")
 
         ax.set_yscale("log")
         # set log scale in base 2
         ax.set_xscale("log", base=2)
-        ax.set_xlabel("Matrix size")
-        ax.set_ylabel("Time (s)")
+        # show the ticks of xscale in integers instead of scientific notation
+        ax.xaxis.set_major_formatter(plt.ScalarFormatter())
+        ax.set_xticks(matrix_sizes)
+        ax.set_xlabel("Matrix size $n$")
+        ax.set_ylabel("Relative error")
         ax.grid()
         ax.legend()
 
         params = f"n-factors={args.n_factors}-rank={args.rank}-noise={args.noise}-hierarchical-order={args.hierarchical_order}"
-        ax.set_title(params)
+        # ax.set_title(params)
 
+        plt.tight_layout()
         plt.savefig(args.results_dir / f"time_vs_matrix_size_{params}.pdf")
         plt.show()
 
@@ -72,28 +76,33 @@ if __name__ == '__main__':
         error_std = error_std.rename(columns={"error-relative": "error_std"})
         error_df = error_mean.join(error_std)
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(5, 4))
         # plot time vs matrix size with error bars following std
         for orthonormalize in [True, False]:
             error_df_local = error_df.loc[(slice(None), orthonormalize), :]
             matrix_sizes = error_df_local.index.levels[0]
-            ax.errorbar(matrix_sizes, error_df_local["error_mean"], yerr=error_df_local["error_std"], marker="x", label=f"orthonormalize={orthonormalize}")
+            ax.errorbar(matrix_sizes, error_df_local["error_mean"], yerr=error_df_local["error_std"], marker="x", label="With orthonormalization" if orthonormalize else "Without orthonormalization")
 
         # show as horizontal bar the noise level
         noise_level = args.noise
-        ax.axhline(y=noise_level, color='r', linestyle='--', label="noise level")
+        ax.axhline(y=noise_level, color='r', linestyle='--', label="Noise level")
 
         # ax.set_yscale("log")
         # set log scale in base 2
         ax.set_xscale("log", base=2)
-        ax.set_xlabel("Matrix size")
+        # show the ticks of xscale in integers instead of scientific notation
+        ax.xaxis.set_major_formatter(plt.ScalarFormatter())
+        ax.set_xticks(matrix_sizes)
+
+        ax.set_xlabel("Matrix size $n$")
         ax.set_ylabel("Relative error")
         ax.grid()
         ax.legend()
 
         params = f"n-factors={args.n_factors}-rank={args.rank}-noise={args.noise}-hierarchical-order={args.hierarchical_order}"
-        ax.set_title(params)
+        # ax.set_title(params)
 
+        plt.tight_layout()
         plt.savefig(args.results_dir / f"error_vs_matrix_size_{params}.pdf")
         plt.show()
 
