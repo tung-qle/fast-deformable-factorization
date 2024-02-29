@@ -1,6 +1,5 @@
 
 import torch
-import matplotlib.pyplot as plt
 import time
 from tqdm import tqdm
 import shutil
