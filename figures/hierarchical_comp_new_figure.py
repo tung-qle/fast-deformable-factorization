@@ -57,7 +57,7 @@ if __name__ == '__main__':
         ax.xaxis.set_major_formatter(plt.ScalarFormatter())
         ax.set_xticks(matrix_sizes)
         ax.set_xlabel("Matrix size $n$")
-        ax.set_ylabel("Relative error")
+        ax.set_ylabel("Running time (s)")
         ax.grid()
         ax.legend()
 
