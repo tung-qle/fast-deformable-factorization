@@ -30,11 +30,11 @@ def parse_arg():
 
     # parameters for iterative method
     parser.add_argument("--lr", type=float, default=0.1, help="Learning rate of Adam for iterative method")
-    parser.add_argument("--n_adam_epochs", default=100, help="Number of ADAM iterations")
-    parser.add_argument("--n_lbfgs_epochs", default=20, help="Number of LBFGS iterations")
+    parser.add_argument("--n_adam_epochs", type=int, default=100, help="Number of ADAM iterations")
+    parser.add_argument("--n_lbfgs_epochs", type=int, default=20, help="Number of LBFGS iterations")
 
     # parameters for ALS
-    parser.add_argument("--n_als_epochs", default=5, help="Number of ALS iterations")
+    parser.add_argument("--n_als_epochs", type=int, default=5, help="Number of ALS iterations")
 
     return parser.parse_args()
 
