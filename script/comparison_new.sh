@@ -1,5 +1,5 @@
 results_dir="results/fact_vs_iter_vs_als"
-k=9
+k=$1
 lr=0.1
 n_adam_epochs=100
 n_lbfgs_epochs=20
