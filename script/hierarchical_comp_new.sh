@@ -1,7 +1,10 @@
 n_factors=4
-noise=0.1
 
-save_dir="results/hierarchical_comp_new/anchiale1"
+for noise in 0.1 0.3 0.01 0.03
+do
+#noise=0.1
+
+save_dir="results/hierarchical_comp_new/anchiale1/2024-03-11"
 
 for rank in 2 4 1
 do
@@ -26,4 +29,6 @@ do
       done
     done
   done
+done
+
 done
