@@ -4,7 +4,7 @@ for noise in 0.1 0.3 0.01 0.03
 do
 #noise=0.1
 
-save_dir="results/hierarchical_comp_new/anchiale1/2024-04-17"
+save_dir="results/hierarchical_comp_new/anchiale6/2024-04-17"
 
 #for rank in 2 4 1
 for rank in 4
