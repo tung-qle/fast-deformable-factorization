@@ -9,14 +9,15 @@ from src.butterfly.butterfly import Butterfly
 
 
 class SquareDyadicGradient():
-    def __init__(self, size):
+    def __init__(self, size, device="cpu"):
         self.size = size
         self.butterfly = Butterfly(size, size, bias=False)
         self.start = None
         self.loss = nn.MSELoss(reduction="sum")
+        self.device = device
 
     def to_dense_matrix(self):
-        x = torch.eye(self.size, self.size, device=device, requires_grad=False)
+        x = torch.eye(self.size, self.size, device=self.device, requires_grad=False)
         return self.butterfly(x).t()
 
     def approximate_matrix(self, matrix, lr=0.05, optimizer="Adam", momentum=0.9, epochs=100, epsilon=1e-10,
