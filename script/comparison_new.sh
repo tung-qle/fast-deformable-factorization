@@ -1,10 +1,11 @@
-results_dir="results/fact_vs_iter_vs_als/17_04/anchiale1"
+results_dir="results/fact_vs_iter_vs_als/anchiale6/2024-04-17"
 lr=0.1
 n_adam_epochs=100
 n_lbfgs_epochs=20
 n_als_epochs=5
 
-for k in 9 10 11 12
+#for k in 9 10 11 12
+for k in 10
 do
   # hierarchical algo
   for orthonormalize in True False

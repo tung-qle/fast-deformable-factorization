@@ -4,9 +4,10 @@ for noise in 0.1 0.3 0.01 0.03
 do
 #noise=0.1
 
-save_dir="results/hierarchical_comp_new/anchiale1/2024-03-11"
+save_dir="results/hierarchical_comp_new/anchiale1/2024-04-17"
 
-for rank in 2 4 1
+#for rank in 2 4 1
+for rank in 4
 do
   for matrix_size in 128 256 512 1024 2048 4096 8192
   do
@@ -14,7 +15,8 @@ do
     do
       for orthonormalize in True False
       do
-        for hierarchical_order in left-to-right balanced
+#        for hierarchical_order in left-to-right balanced
+        for hierarchical_order in balanced
         do
           python hierarchical_comp_new.py \
             --n-factors $n_factors \
