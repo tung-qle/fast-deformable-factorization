@@ -1,4 +1,4 @@
-results_dir="results/fact_vs_iter_vs_als/anchiale1"
+results_dir="results/fact_vs_iter_vs_als/17_04/anchiale1"
 lr=0.1
 n_adam_epochs=100
 n_lbfgs_epochs=20
@@ -25,6 +25,15 @@ do
     --results-dir $results_dir \
     --k $k \
     --method gradient \
+    --lr $lr \
+    --n_adam_epochs $n_adam_epochs \
+    --n_lbfgs_epochs $n_lbfgs_epochs
+
+  # square dyadic gradient dao
+  python comparison_new.py \
+    --results-dir $results_dir \
+    --k $k \
+    --method square-dyadic-gradient-dao \
     --lr $lr \
     --n_adam_epochs $n_adam_epochs \
     --n_lbfgs_epochs $n_lbfgs_epochs

@@ -1,6 +1,7 @@
 import time
 import argparse
 import src.GB_gradient as gradient
+import src.square_dyadic_gradient as square_dyadic_gradient
 import src.GB_factorization as fact
 import src.GB_ALS as als
 import src.GB_operators as operator
@@ -23,7 +24,7 @@ def parse_arg():
 
     parser.add_argument("--results-dir", type=Path, default="results/fact_vs_iter_vs_als")
     parser.add_argument("--k", type=int, default=9, help="Number of factors.")
-    parser.add_argument("--method", type=str, choices=["hierarchical", "gradient", "als"])
+    parser.add_argument("--method", type=str, choices=["hierarchical", "gradient", "als", "square-dyadic-gradient-dao"])
 
     # parameters for hierarchical factorization
     parser.add_argument("--orthonormalize", choices=["True", "False"], default="True")
@@ -38,6 +39,7 @@ def parse_arg():
     parser.add_argument("--n_als_epochs", type=int, default=5, help="Number of ALS iterations")
 
     return parser.parse_args()
+
 
 def balanced_permutation(k):
     if k == 1:
@@ -96,7 +98,9 @@ if __name__ == "__main__":
             "running-time": running_time
         }
         df = pd.DataFrame([metrics])
-        df.to_csv(save_dir / f"hierarchical-orthonormalize={orthonormalize}-hierarchical_order={args.hierarchical_order}.csv", index=False)
+        df.to_csv(
+            save_dir / f"hierarchical-orthonormalize={orthonormalize}-hierarchical_order={args.hierarchical_order}.csv",
+            index=False)
 
     elif args.method == "gradient":
         matrix = torch.from_numpy(scipy.linalg.hadamard(size) * 1.0)
@@ -108,6 +112,18 @@ if __name__ == "__main__":
         df["running-time"] = time_evol
         df.to_csv(
             save_dir / f"gradient-lr={args.lr}-n-adam-epochs={args.n_adam_epochs}-n-lbfgs-epochs={args.n_lbfgs_epochs}.csv",
+            index=False)
+
+    elif args.method == "square-dyadic-gradient-dao":
+        matrix = torch.from_numpy(scipy.linalg.hadamard(size) * 1.0)
+        factorization = square_dyadic_gradient.SquareDyadicGradient(size)
+        loss_evol, time_evol = factorization.approximate_matrix(matrix.float(), lr=args.lr, epochs=args.n_adam_epochs,
+                                                                device="cpu", num_iter_refined=args.n_lbfgs_epochs)
+        df = pd.DataFrame()
+        df["relative-error"] = loss_evol
+        df["running-time"] = time_evol
+        df.to_csv(
+            save_dir / f"square-dyadic-gradient-lr={args.lr}-n-adam-epochs={args.n_adam_epochs}-n-lbfgs-epochs={args.n_lbfgs_epochs}.csv",
             index=False)
 
     elif args.method == "als":

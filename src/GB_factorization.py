@@ -98,7 +98,7 @@ def gbf_normalization(l_twiddle, r_twiddle, l_param, r_param, type='left'):
     return l_twiddle, r_twiddle
 
 
-def intermediate_factorization(start, middle, end, gb_params, target, normalized_type='L'):
+def intermediate_factorization(start, middle, end, gb_params, target, normalized_type='L', track_epsilon=False):
     """
     Performing one level of hierarchical factorization
     Input: 
@@ -119,6 +119,16 @@ def intermediate_factorization(start, middle, end, gb_params, target, normalized
 
     # Compute batch SVD
     l_factor, r_factor = low_rank_project(target, rank=param_left[-1], normalized_type=normalized_type)
+    if track_epsilon:
+        # ...
+        low_rank_errors = torch.linalg.norm(target - torch.matmul(l_factor, r_factor), dim=(-1, -2))
+        norms = torch.linalg.norm(target, dim=(-1, -2))
+        relative_error = low_rank_errors / norms
+        epsilon = torch.max(relative_error)
+    else:
+        epsilon = None
+
+        # return l_factor, r_factor, low_rank_errors
     # l_factor, r_factor = torch_svd(target, rank = param_left[-1])
 
     # print("Size l_factor: ", l_factor.size())
@@ -129,10 +139,12 @@ def intermediate_factorization(start, middle, end, gb_params, target, normalized
     # print(r_factor.size())
     r_factor = right_to_twiddle(r_factor, param_right[1])
 
-    return l_factor, r_factor
+    # if not track_epsilon:
+    #     return l_factor, r_factor
+    return l_factor, r_factor, epsilon
 
 
-def GBfactorize(matrix, gb_params, orders, normalize=True, normalized_type='L'):
+def GBfactorize(matrix, gb_params, orders, normalize=True, normalized_type='L', track_epsilon=False):
     """
     Input: 
     matrix: target matrix that will be factorized
@@ -142,6 +154,7 @@ def GBfactorize(matrix, gb_params, orders, normalize=True, normalized_type='L'):
     A list of GB factors approximating the target matrix
     """
     result = [Factor(0, len(gb_params) - 1, matrix)]
+    max_epsilon = 0
     for i in orders:
         # Search for the corresponding intermediate factors
         if normalize:
@@ -168,14 +181,20 @@ def GBfactorize(matrix, gb_params, orders, normalize=True, normalized_type='L'):
         for index in range(len(result)):
             f = result[index]
             if f.start <= i and i < f.end:
-                l_factor, r_factor = intermediate_factorization(f.start, i, f.end, gb_params, f.factor,
-                                                                normalized_type=normalized_type)
+                l_factor, r_factor, epsilon = intermediate_factorization(f.start, i, f.end, gb_params, f.factor,
+                                                                         normalized_type=normalized_type,
+                                                                         track_epsilon=track_epsilon)
+                if track_epsilon and epsilon.item() > max_epsilon:
+                    max_epsilon = epsilon.item()
+
                 l_element = Factor(f.start, i, l_factor)
                 r_element = Factor(i + 1, f.end, r_factor)
                 del result[index]
                 result.insert(index, l_element)
                 result.insert(index + 1, r_element)
                 break
+    if track_epsilon:
+        return result, max_epsilon
     return result
 
 
