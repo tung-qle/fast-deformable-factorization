@@ -3,15 +3,13 @@ import argparse
 import src.GB_factorization as fact
 import src.GB_operators as operator
 from warnings import warn
-
 try:
     import torch
-
     found_pytorch = True
 except ImportError:
     warn("Did not find PyTorch, therefore use NumPy/SciPy")
     found_pytorch = False
-
+import numpy as np
 from pathlib import Path
 import pandas as pd
 
@@ -91,7 +89,10 @@ if __name__ == "__main__":
     )
 
     # generate target matrix
-    torch.manual_seed(seed)
+    if found_pytorch:
+        torch.manual_seed(seed)
+    else:
+        np.random.seed(seed)
     twiddle_list = [operator.random_generate(param) for param in min_param]
     matrix = operator.densification(twiddle_list, min_param)
     if found_pytorch:
@@ -116,6 +117,7 @@ if __name__ == "__main__":
         )
         matrix = matrix + noise_matrix
         noise_level = np.linalg.norm(noise_matrix) / np.linalg.norm(matrix)
+    print('M', matrix.shape)
 
     # permutation
     if hierarchical_order == "left-to-right":
@@ -149,7 +151,10 @@ if __name__ == "__main__":
         "seed-target-matrix": seed,
         "orthonormalize": orthonormalize,
         "hierarchical-order": hierarchical_order,
-        "target-matrix-norm": torch.linalg.norm(matrix).item(),
+        "target-matrix-norm": (
+            torch.linalg.norm(matrix).item() if found_pytorch
+            else np.linalg.norm(matrix)
+        ),
         "noise-level-relative": noise_level,
         "time": end - begin,
         "error-relative": error,
@@ -160,9 +165,6 @@ if __name__ == "__main__":
     df = pd.DataFrame([results])
     df.to_csv(
         save_dir
-        / f"n_factors={n_factors}-rank={rank}-noise={noise}"
-        + f"-matrix_size={matrix_size}-seed={seed}"
-        + f"-orthonormalize={orthonormalize}"
-        + f"-hierarchical-order={hierarchical_order}.csv"
+        / f"n_factors={n_factors}-rank={rank}-noise={noise}-matrix_size={matrix_size}-seed={seed}-orthonormalize={orthonormalize}-hierarchical-order={hierarchical_order}.csv"
     )
     print(df)
