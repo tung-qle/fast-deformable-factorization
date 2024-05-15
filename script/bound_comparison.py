@@ -114,9 +114,9 @@ if __name__ == '__main__':
         # approximation (torch.norm(matrix - operator.densification(factor_list, architecture)) / torch.norm(matrix)).item()
 
     fig, ax = plt.subplots(figsize=(6, 3))
-    ax.plot(args.noise_level, our_bound_list, marker='+', label="Our bound from Theorem 7.2")
-    ax.plot(args.noise_level, bound_liu_list, marker='+', label="Bound (2.1) from (Liu et al., 2021)")
-    ax.plot(args.noise_level, approximation_error_list, marker='+', label="Approximation error by Algorithm 6.2")
+    ax.plot(args.noise_level, our_bound_list, marker='x', label="Our bound from Theorem 7.2")
+    ax.plot(args.noise_level, bound_liu_list, marker='x', label="Bound (2.1) from (Liu et al., 2021)")
+    ax.plot(args.noise_level, approximation_error_list, marker='x', label="Approximation error by Algorithm 6.2")
     ax.set_xlabel("Noise level $\epsilon$")
     ax.set_ylabel("Relative error")
     ax.set_yscale("log")
