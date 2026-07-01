@@ -1,0 +1,10 @@
+# Requirements to run test_fac.py (Hadamard transform factorization)
+# Install CPU-only torch via the PyTorch CPU wheel index:
+#   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+
+torch
+numpy
+scipy
+einops
+pandas
+sympy
