@@ -1,0 +1,10 @@
+# Normalize all text files to LF in the repository
+* text=auto eol=lf
+
+# Explicitly treat common binary types as binary (never normalized)
+*.png binary
+*.npz binary
+*.npy binary
+*.pyc binary
+*.so binary
+*.pdf binary
