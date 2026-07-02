@@ -13,6 +13,9 @@ def low_rank_project(M, rank=1, normalized_type='L'):
     M: a tensor of order 4, performing svd on the two last axis
     rank: desired rank
     """
+    assert rank <= min(M.size(-2), M.size(-1)), \
+        f"Requested rank {rank} exceeds the block size {tuple(M.size()[-2:])}: " \
+        f"the architecture is redundant, use GBfactorize_auto"
     U, S, Vt = torch.linalg.svd(M, full_matrices=False)
     S_sqrt = S[..., :rank].sqrt()
     U = U[..., :rank] * rearrange(S_sqrt, '... rank -> ... 1 rank')
@@ -112,7 +115,10 @@ def intermediate_factorization(start, middle, end, gb_params, target, normalized
     param = partial_prod_deformable_butterfly_params(gb_params, start, end)
     param_left = partial_prod_deformable_butterfly_params(gb_params, start, middle)
     param_right = partial_prod_deformable_butterfly_params(gb_params, middle + 1, end)
-    assert target.size() == (param[0], param[3], param[1] * param[4], param[2] * param[5])
+    expected_size = (param[0], param[3], param[1] * param[4], param[2] * param[5])
+    assert target.size() == expected_size, \
+        f"Target twiddle of size {tuple(target.size())} does not match the size {expected_size} " \
+        f"expected from the partial product of gb_params[{start}:{end + 1}]"
 
     # Reshape the target twiddle 
     target = dense_to_pre_low_rank_projection(target, param_right[1], param_left[2])
@@ -193,6 +199,78 @@ def GBfactorize(matrix, gb_params, orders, normalize=True, normalized_type='L', 
                 result.insert(index, l_element)
                 result.insert(index + 1, r_element)
                 break
+    if track_epsilon:
+        return result, max_epsilon
+    return result
+
+
+def rank_padded_low_rank_project(M, rank):
+    """
+    Batch factorization M = U @ Vt where U, Vt have inner dimension `rank`,
+    exact whenever rank >= min(M.shape[-2:]). Unlike low_rank_project, the
+    requested inner dimension is always respected, by zero-padding the SVD
+    factors when rank exceeds the block dimensions.
+    """
+    effective_rank = min(rank, M.size(-2), M.size(-1))
+    U, Vt = low_rank_project(M, rank=effective_rank)
+    if effective_rank < rank:
+        pad = rank - effective_rank
+        U = torch.nn.functional.pad(U, (0, pad))
+        Vt = torch.nn.functional.pad(Vt, (0, 0, 0, pad))
+    return U, Vt
+
+
+def expand_factor(twiddle, sub_params):
+    """
+    Exact factorization of a merged factor into the original (redundant)
+    sub-chain it replaces (Lemma 4.23 of arXiv:2411.04506).
+    Input:
+    twiddle: a twiddle whose parameter is the product of sub_params
+    sub_params: the original chain of 6-tuples merged into this factor
+    Output: a list of twiddles, one per parameter in sub_params, whose
+    product equals twiddle (up to numerical precision)
+    """
+    if len(sub_params) == 1:
+        return [twiddle]
+    param_left = sub_params[0]
+    param_right = partial_prod_deformable_butterfly_params(sub_params, 1, len(sub_params) - 1)
+    target = dense_to_pre_low_rank_projection(twiddle, param_right[1], param_left[2])
+    l_factor, r_factor = rank_padded_low_rank_project(target, rank=param_left[5])
+    l_factor = left_to_twiddle(l_factor, param_left[2])
+    r_factor = right_to_twiddle(r_factor, param_right[1])
+    return [l_factor] + expand_factor(r_factor, sub_params[1:])
+
+
+def GBfactorize_auto(matrix, gb_params, orders=None, normalize=True, normalized_type='L', track_epsilon=False):
+    """
+    Butterfly factorization for any chainable architecture, redundant or not
+    (Remark 6.4 of arXiv:2411.04506). For a redundant architecture, the
+    factorization is computed with the reduced non-redundant architecture
+    (Algorithm 4.1), then lifted back to the original architecture with the
+    same approximation error.
+    Input/Output: same as GBfactorize; orders defaults to left-to-right.
+    """
+    assert compatible_chain_gb_params(gb_params), "gb_params is not a valid chainable architecture"
+    if orders is None:
+        orders = list(range(len(gb_params) - 1))
+    reduced_params, groups = remove_redundancy(gb_params)
+    if len(reduced_params) == len(gb_params):
+        return GBfactorize(matrix, gb_params, orders, normalize, normalized_type, track_epsilon)
+
+    # The interfaces of the reduced chain are the surviving original
+    # interfaces (between consecutive groups); factorize in the order induced
+    # by the requested orders.
+    surviving = {groups[j][-1]: j for j in range(len(groups) - 1)}
+    reduced_orders = [surviving[i] for i in orders if i in surviving]
+    result = GBfactorize(matrix, reduced_params, reduced_orders, normalize, normalized_type, track_epsilon)
+    if track_epsilon:
+        result, max_epsilon = result
+
+    factors = []
+    for f, group in zip(result, groups):
+        sub_params = [gb_params[i] for i in group]
+        factors.extend(expand_factor(f.factor, sub_params))
+    result = [Factor(i, i, twiddle) for i, twiddle in enumerate(factors)]
     if track_epsilon:
         return result, max_epsilon
     return result
