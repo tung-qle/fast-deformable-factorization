@@ -159,6 +159,9 @@ def GBfactorize(matrix, gb_params, orders, normalize=True, normalized_type='L', 
     Output:
     A list of GB factors approximating the target matrix
     """
+    assert not normalize or non_redundant_chain_gb_params(gb_params), \
+        "normalize=True requires a non-redundant architecture (the orthonormalization " \
+        "is not well-defined otherwise): use GBfactorize_auto or normalize=False"
     result = [Factor(0, len(gb_params) - 1, matrix)]
     max_epsilon = 0
     for i in orders:
