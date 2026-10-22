@@ -71,11 +71,11 @@ def redundant_pair_gb_params(param1, param2):
     return q1 >= min(b1 * p1, c2 * q2)
 
 def compatible_chain_gb_params(gb_params):
-    if gb_params[0][0] != 1:
-        return False
+    # Chainability of the architecture, with the convention p_1 = q_L = 1 on
+    # the boundary ranks. The outer a_1 and d_L are arbitrary: the product of
+    # the chain is then a twiddle of size (a_1, d_L, ., .), not necessarily a
+    # dense matrix (a_1 = d_L = 1).
     if gb_params[0][4] != 1:
-        return False
-    if gb_params[-1][3] != 1:
         return False
     if gb_params[-1][5] != 1:
         return False
