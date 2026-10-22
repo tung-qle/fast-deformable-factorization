@@ -28,6 +28,8 @@ reports the reconstruction error and running time:
 
 ```bash
 python test_fac.py
+# options: --n (matrix size 2**n), --rank (inner rank of the architecture,
+# redundant when >= 2), --random-order (random factorization order)
 ```
 
 The core call is `GBfactorize`, which takes the target matrix, the butterfly parameters
@@ -57,6 +59,13 @@ factor_list = [f.factor for f in factor_list]
 error = torch.norm(matrix - densification(factor_list, gb_params))
 print("Error:", error)
 ```
+
+`GBfactorize` requires a non-redundant architecture (Definition 4.18 of the paper).
+For an arbitrary chainable architecture, redundant or not, use `GBfactorize_auto`
+(same interface, `orders` optional): it removes the redundancy of the architecture
+(Algorithm 4.1), factorizes with the reduced non-redundant architecture, and lifts
+the factorization back to the original one with the same approximation error
+(Remark 6.4). See `test_redundancy.py` for examples.
 
 ## Scripts to reproduce figures of the paper
 
