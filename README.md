@@ -67,6 +67,11 @@ For an arbitrary chainable architecture, redundant or not, use `GBfactorize_auto
 the factorization back to the original one with the same approximation error
 (Remark 6.4). See `test_redundancy.py` for examples.
 
+The first factor need not have `a = 1` nor the last one `d = 1`: the product of the
+chain is then a block diagonal matrix (with `a` blocks, each a Kronecker product with
+the identity of size `d`), and the target must be given in twiddle format, of size
+`(a_1, d_L, b * p, c * q)` where `(a_1, b, c, d_L, p, q)` is the product of `gb_params`.
+
 ## Scripts to reproduce figures of the paper
 
 * Figure 3: [`script/comparison_new.sh`](https://github.com/tung-qle/fast-deformable-factorization/blob/master/script/comparison_new.sh)

@@ -252,8 +252,16 @@ def GBfactorize_auto(matrix, gb_params, orders=None, normalize=True, normalized_
     (Algorithm 4.1), then lifted back to the original architecture with the
     same approximation error.
     Input/Output: same as GBfactorize; orders defaults to left-to-right.
+    The target matrix must be given as a twiddle of size
+    (a_1, d_L, b * p, c * q), where (a_1, b, c, d_L, p, q) is the product of
+    gb_params; it is (1, 1, M, N) for an M x N matrix when a_1 = d_L = 1.
     """
     assert compatible_chain_gb_params(gb_params), "gb_params is not a valid chainable architecture"
+    param = partial_prod_deformable_butterfly_params(gb_params, 0, len(gb_params) - 1)
+    expected_size = (param[0], param[3], param[1] * param[4], param[2] * param[5])
+    assert matrix.size() == expected_size, \
+        f"Target of size {tuple(matrix.size())} does not match the twiddle size {expected_size} " \
+        f"expected from the product of gb_params"
     if orders is None:
         orders = list(range(len(gb_params) - 1))
     reduced_params, groups = remove_redundancy(gb_params)

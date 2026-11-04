@@ -96,8 +96,45 @@ def test_factorization_noisy_redundant_chain():
     print(f"test_factorization_noisy_redundant_chain: OK (errors: {errors})")
 
 
+def outer_chain(gb_params, a, d):
+    # Chain whose product is a block diagonal of a blocks, each the Kronecker
+    # product of the product of gb_params with I_d (a_1 = a, d_L = d)
+    return [(pm[0] * a, pm[1], pm[2], pm[3] * d, pm[4], pm[5]) for pm in gb_params]
+
+
+def test_factorization_boundary_chain():
+    # Chainable architectures with a_1 > 1 or d_L > 1, redundant or not
+    torch.manual_seed(0)
+    chains = [
+        [(2, 2, 2, 4, 1, 2), (4, 2, 2, 2, 2, 1)],  # Chain([(2, 2, 4, 4), (4, 4, 2, 2)]) of lazylinop
+        [(2, 2, 2, 4, 1, 1), (4, 2, 2, 2, 1, 1)],
+        outer_chain(hadamard_chain(3, 1), 2, 1),
+        outer_chain(hadamard_chain(3, 3), 1, 2),
+        outer_chain(hadamard_chain(4, 2), 2, 4),
+    ]
+    for gb_params in chains:
+        assert compatible_chain_gb_params(gb_params)
+        target = product_of_twiddles([random_generate(pm) for pm in gb_params], gb_params)
+        for normalize in [False, True]:
+            factor_list = GBfactorize_auto(target, gb_params, normalize=normalize)
+            factor_list = [f.factor for f in factor_list]
+            error = torch.norm(target - product_of_twiddles(factor_list, gb_params)) / torch.norm(target)
+            assert error < 1e-5, f"{gb_params}, normalize={normalize}: error {error}"
+    # The target must be given in twiddle format, not as a dense matrix
+    gb_params = chains[0]
+    dense = torch.randn(1, 1, 16, 16)
+    try:
+        GBfactorize_auto(dense, gb_params)
+    except AssertionError as e:
+        assert "twiddle size (2, 2, 4, 4)" in str(e)
+    else:
+        raise AssertionError("a dense target should be rejected for a_1 > 1 or d_L > 1")
+    print("test_factorization_boundary_chain: OK")
+
+
 if __name__ == "__main__":
     test_remove_redundancy()
     test_expand_factor()
     test_factorization_redundant_chain()
     test_factorization_noisy_redundant_chain()
+    test_factorization_boundary_chain()
