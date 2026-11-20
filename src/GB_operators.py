@@ -1,6 +1,7 @@
 import torch
 from einops import rearrange
 from src.GB_param_generate import *
+from src.utils import partial_prod_deformable_butterfly_params
 
 
 def param_mul_param(param1, param2):
@@ -52,22 +53,65 @@ def twiddle_to_dense(twiddle):
     return output.reshape(a, d, b, n).permute(0, 2, 1, 3).reshape(a * d * b, n)
 
 
+def dense_to_twiddle(matrix, gb_params):
+    """
+    Write the target of a factorization with gb_params in twiddle format, by
+    restricting a dense matrix to the support of the product of gb_params
+    (inverse of twiddle_to_dense on this support). When a_1 > 1 or d_L > 1,
+    the product of the chain is not a full matrix but has a fixed support S.
+    For any factors X_1, ..., X_L,
+        ||A - X_1 ... X_L||^2 = ||A_S - X_1 ... X_L||^2 + ||A - A_S||^2,
+    so the entries of A outside S play no role in the factorization: the best
+    factors for A are those for A_S, and ||A - A_S|| is a lower bound on the
+    approximation error of this architecture.
+    Input:
+    matrix: a dense matrix of size (M, N) or (1, 1, M, N), or a tensor already
+    in twiddle format, which is returned unchanged
+    gb_params: a chainable architecture (list of 6-tuples)
+    Output: a twiddle of size (a_1, d_L, b * p, c * q), where (a_1, b, c, d_L, p, q)
+    is the product of gb_params
+    """
+    a, b, c, d, p, q = partial_prod_deformable_butterfly_params(gb_params, 0, len(gb_params) - 1)
+    b, c = b * p, c * q
+    twiddle_size = (a, d, b, c)
+    dense_size = (a * b * d, a * c * d)
+    if matrix.size() == twiddle_size:
+        return matrix
+    if matrix.size() == (1, 1) + dense_size:
+        matrix = matrix[0, 0]
+    assert matrix.size() == dense_size, \
+        f"Target of size {tuple(matrix.size())} matches neither the dense size {dense_size} " \
+        f"nor the twiddle size {twiddle_size} expected from the product of gb_params"
+
+    twiddle = rearrange(matrix, '(a1 b d1) (a2 c d2) -> a1 a2 d1 d2 b c', a1=a, a2=a, d1=d, d2=d, b=b, c=c)
+    twiddle = twiddle.diagonal(dim1=0, dim2=1).diagonal(dim1=0, dim2=1)
+    return rearrange(twiddle, 'b c a d -> a d b c')
+
+
+def product_of_twiddles(twiddles, params):
+    """
+    Product of a (sub-)chain of twiddles, in twiddle format: the output has
+    size (a, d, b * p, c * q) where (a, b, c, d, p, q) is the product of params,
+    which is (1, 1, M, N) for a chain with a_1 = d_L = 1 and an M x N product.
+    Use twiddle_to_dense to write the result in dense form otherwise.
+    """
+    output = twiddles[0]
+    current_param = list(params[0])
+    for twiddle, param in zip(twiddles[1:], params[1:]):
+        output = twiddle_mul_twiddle(output, twiddle, current_param, param)
+        current_param = param_mul_param(current_param, param)
+    return output
+
+
 def densification(twiddle_list, param_list):
     """
     Compute product of twiddle
     Input:
     twiddle_list: List of twiddles
     param_list: List of params
-    Output: product of twiddles
+    Output: product of twiddles, in twiddle format (see product_of_twiddles)
     """
-    a, b, c, d, p, q = param_list[0]
-    n = a * b * d * p
-    output = torch.ones(1, n, 1, 1)
-    current_param = [1, 1, 1, n, 1, 1]
-    for twiddle, param in zip(twiddle_list, param_list):
-        output = twiddle_mul_twiddle(output, twiddle, current_param, param)
-        current_param = param_mul_param(current_param, param)
-    return output
+    return product_of_twiddles(twiddle_list, param_list)
 
 
 if __name__ == "__main__":
