@@ -150,31 +150,11 @@ def intermediate_factorization(start, middle, end, gb_params, target, normalized
     return l_factor, r_factor, epsilon
 
 
-def target_to_twiddle(matrix, gb_params):
-    """
-    Target of the factorization with gb_params, in twiddle format.
-    Input:
-    matrix: either a dense matrix of size (M, N) or (1, 1, M, N), which is
-    restricted to the support of the product of gb_params (see dense_to_twiddle),
-    or a twiddle of size (a_1, d_L, b * p, c * q) where (a_1, b, c, d_L, p, q)
-    is the product of gb_params. Both coincide when a_1 = d_L = 1.
-    """
-    a, b, c, d, p, q = partial_prod_deformable_butterfly_params(gb_params, 0, len(gb_params) - 1)
-    twiddle_size = (a, d, b * p, c * q)
-    if matrix.size() == twiddle_size:
-        return matrix
-    dense_size = (a * b * p * d, a * c * q * d)
-    assert matrix.size() in [dense_size, (1, 1) + dense_size], \
-        f"Target of size {tuple(matrix.size())} matches neither the dense size {dense_size} " \
-        f"nor the twiddle size {twiddle_size} expected from the product of gb_params"
-    return dense_to_twiddle(matrix, gb_params)
-
-
 def GBfactorize(matrix, gb_params, orders, normalize=True, normalized_type='L', track_epsilon=False):
     """
     Input:
     matrix: target matrix that will be factorized, dense or in twiddle format
-    (see target_to_twiddle)
+    (see dense_to_twiddle)
     gb_params: the set of parameters describing the parameterization of GB factors
     orders: a permutation describing the order of factorization
     Output:
@@ -183,7 +163,7 @@ def GBfactorize(matrix, gb_params, orders, normalize=True, normalized_type='L', 
     assert not normalize or non_redundant_chain_gb_params(gb_params), \
         "normalize=True requires a non-redundant architecture (the orthonormalization " \
         "is not well-defined otherwise): use GBfactorize_auto or normalize=False"
-    matrix = target_to_twiddle(matrix, gb_params)
+    matrix = dense_to_twiddle(matrix, gb_params)
     result = [Factor(0, len(gb_params) - 1, matrix)]
     max_epsilon = 0
     for i in orders:
@@ -278,10 +258,10 @@ def GBfactorize_auto(matrix, gb_params, orders=None, normalize=True, normalized_
     a_1 > 1 or d_L > 1, the product of gb_params cannot be a full matrix: the
     entries of the target outside the support of this product do not change
     the best factors, and are ignored (see dense_to_twiddle). The target can
-    also be given directly in twiddle format (see target_to_twiddle).
+    also be given directly in twiddle format.
     """
     assert compatible_chain_gb_params(gb_params), "gb_params is not a valid chainable architecture"
-    matrix = target_to_twiddle(matrix, gb_params)
+    matrix = dense_to_twiddle(matrix, gb_params)
     if orders is None:
         orders = list(range(len(gb_params) - 1))
     reduced_params, groups = remove_redundancy(gb_params)

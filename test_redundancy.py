@@ -94,6 +94,9 @@ def outer_chain(gb_params, a, d):
 def test_factorization_boundary_chain():
     # Chainable architectures with a_1 > 1 or d_L > 1, redundant or not
     torch.manual_seed(0)
+    gb_params = hadamard_chain(4, 2)
+    twiddles = [random_generate(pm) for pm in gb_params]
+    assert torch.equal(densification(twiddles, gb_params), product_of_twiddles(twiddles, gb_params))
     chains = [
         [(2, 2, 2, 4, 1, 2), (4, 2, 2, 2, 2, 1)],  # Chain([(2, 2, 4, 4), (4, 4, 2, 2)]) of lazylinop
         [(2, 2, 2, 4, 1, 1), (4, 2, 2, 2, 1, 1)],
@@ -107,7 +110,7 @@ def test_factorization_boundary_chain():
         for normalize in [False, True]:
             factor_list = GBfactorize_auto(target, gb_params, normalize=normalize)
             factor_list = [f.factor for f in factor_list]
-            error = torch.norm(target - product_of_twiddles(factor_list, gb_params)) / torch.norm(target)
+            error = torch.norm(target - densification(factor_list, gb_params)) / torch.norm(target)
             assert error < 1e-5, f"{gb_params}, normalize={normalize}: error {error}"
     # A target matching neither the dense size nor the twiddle size is rejected
     try:
@@ -132,8 +135,10 @@ def test_dense_to_twiddle():
     gb_params = [(2, 2, 2, 4, 1, 2), (4, 2, 2, 2, 2, 1)]
     twiddle = product_of_twiddles([random_generate(pm) for pm in gb_params], gb_params)
     assert torch.equal(dense_to_twiddle(twiddle_to_dense(twiddle), gb_params), twiddle)
+    # A target already in twiddle format is returned unchanged
+    assert dense_to_twiddle(twiddle, gb_params) is twiddle
 
-    # The dense size must match the architecture
+    # The size must match the architecture
     try:
         dense_to_twiddle(torch.randn(8, 8), [(2, 2, 2, 4, 1, 1), (4, 2, 2, 2, 1, 1), (8, 2, 2, 1, 1, 1)])
     except AssertionError as e:
