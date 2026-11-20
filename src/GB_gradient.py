@@ -2,7 +2,7 @@ import torch
 from torch import nn, optim
 from torch import functional as F
 from src.generalized_fly_utils import count_parameters, count_gb_parameters, DebflyGen
-from src.GB_operators import twiddle_mul_twiddle, param_mul_param, random_generate, densification
+from src.GB_operators import random_generate, densification, product_of_twiddles
 from src.utils import *
 import math
 import time
@@ -24,20 +24,14 @@ class GBGradient():
         self.loss = nn.MSELoss(reduction="sum")
 
     def twiddle_to_matrix(self, device):
-        a, b, _, d, p, _ = self.gb_params[0]
-        n = a * b * d * p
-        output = torch.ones(1, n, 1, 1)
-        output = output.to(device)
-        current_param = [1, 1, 1, n, 1, 1]
+        twiddles = []
         count = 0
         for param in self.gb_params:
             a, b, c, d, p, q = param
             parameters = self.twiddle[count:count + count_gb_parameters(param)]
-            parameters = parameters.view(a, d, b * p, c * q).to(device)
-            output = twiddle_mul_twiddle(output, parameters, current_param, param)
-            current_param = param_mul_param(current_param, param)
+            twiddles.append(parameters.view(a, d, b * p, c * q).to(device))
             count += count_gb_parameters(param)
-        return output
+        return product_of_twiddles(twiddles, self.gb_params)
 
     def approximate_matrix(self, matrix, lr=0.05, optimizer="Adam", momentum=0.9, epochs=100, epsilon=1e-10,
                            device='cpu', num_iter_refined=20):

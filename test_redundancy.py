@@ -7,6 +7,7 @@ arXiv:2411.04506)
 import torch
 from scipy.linalg import hadamard
 from src.GB_factorization import *
+from src.GB_gradient import GBGradient
 from src.GB_operators import *
 from test_fac import hadamard_chain
 
@@ -213,6 +214,31 @@ def test_factorization_dense_target():
     print("test_factorization_dense_target: OK")
 
 
+def test_gradient_twiddle_to_matrix():
+    # The product computed by GBGradient is the product of its factors, also
+    # when a_1 > 1 or d_L > 1, and is differentiable in the factors
+    torch.manual_seed(0)
+    chains = [
+        hadamard_chain(4, 1),
+        hadamard_chain(4, 2),
+        outer_chain(hadamard_chain(3, 2), 2, 2),
+        [(2, 2, 2, 4, 1, 1), (4, 2, 2, 2, 1, 1), (8, 2, 2, 1, 1, 1)],
+    ]
+    for gb_params in chains:
+        model = GBGradient(gb_params)
+        factors, count = [], 0
+        for a, b, c, d, p, q in gb_params:
+            size = a * d * b * p * c * q
+            factors.append(twiddle_to_dense(model.twiddle[count:count + size].detach().view(a, d, b * p, c * q)))
+            count += size
+        expected = torch.linalg.multi_dot(factors)
+        output = model.twiddle_to_matrix("cpu")
+        assert torch.allclose(twiddle_to_dense(output.detach()), expected, atol=1e-5), gb_params
+        output.sum().backward()
+        assert model.twiddle.grad is not None and model.twiddle.grad.abs().sum() > 0
+    print("test_gradient_twiddle_to_matrix: OK")
+
+
 if __name__ == "__main__":
     test_remove_redundancy()
     test_expand_factor()
@@ -221,3 +247,4 @@ if __name__ == "__main__":
     test_factorization_boundary_chain()
     test_dense_to_twiddle()
     test_factorization_dense_target()
+    test_gradient_twiddle_to_matrix()
