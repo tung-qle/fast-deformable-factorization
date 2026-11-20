@@ -1,6 +1,7 @@
 import torch
 from einops import rearrange
 from src.GB_param_generate import *
+from src.utils import partial_prod_deformable_butterfly_params
 
 
 def param_mul_param(param1, param2):
@@ -50,6 +51,50 @@ def twiddle_to_dense(twiddle):
     output = output.reshape(a, c, d, n).permute(0, 2, 1, 3).reshape(a * d, c, n)  # (a * d, c, n)
     output = torch.bmm(t, output)  # (a * d, b, n)
     return output.reshape(a, d, b, n).permute(0, 2, 1, 3).reshape(a * d * b, n)
+
+
+def dense_to_twiddle(matrix, gb_params):
+    """
+    Restrict a dense matrix to the support of the product of gb_params, in the
+    twiddle format used as a target for gb_params (inverse of twiddle_to_dense
+    on this support). When a_1 > 1 or d_L > 1, the product of the chain is not
+    a full matrix but has a fixed support S. For any factors X_1, ..., X_L,
+        ||A - X_1 ... X_L||^2 = ||A_S - X_1 ... X_L||^2 + ||A - A_S||^2,
+    so the entries of A outside S play no role in the factorization: the best
+    factors for A are those for A_S, and ||A - A_S|| is a lower bound on the
+    approximation error of this architecture.
+    Input:
+    matrix: a tensor of size (M, N) or (1, 1, M, N)
+    gb_params: a chainable architecture (list of 6-tuples)
+    Output: a twiddle of size (a_1, d_L, b * p, c * q), where (a_1, b, c, d_L, p, q)
+    is the product of gb_params
+    """
+    a, b, c, d, p, q = partial_prod_deformable_butterfly_params(gb_params, 0, len(gb_params) - 1)
+    b, c = b * p, c * q
+    if matrix.dim() == 4 and matrix.size()[:2] == (1, 1):
+        matrix = matrix[0, 0]
+    expected_size = (a * b * d, a * c * d)
+    assert matrix.size() == expected_size, \
+        f"Dense matrix of size {tuple(matrix.size())} does not match the size {expected_size} " \
+        f"expected from the product of gb_params"
+
+    twiddle = rearrange(matrix, '(a1 b d1) (a2 c d2) -> a1 a2 d1 d2 b c', a1=a, a2=a, d1=d, d2=d, b=b, c=c)
+    twiddle = twiddle.diagonal(dim1=0, dim2=1).diagonal(dim1=0, dim2=1)
+    return rearrange(twiddle, 'b c a d -> a d b c')
+
+
+def product_of_twiddles(twiddles, params):
+    """
+    Product of a (sub-)chain of twiddles, kept in twiddle format. Unlike
+    densification, this does not require the chain to start with a = p = 1.
+    Use twiddle_to_dense to write the result in dense form.
+    """
+    output = twiddles[0]
+    current_param = list(params[0])
+    for twiddle, param in zip(twiddles[1:], params[1:]):
+        output = twiddle_mul_twiddle(output, twiddle, current_param, param)
+        current_param = param_mul_param(current_param, param)
+    return output
 
 
 def densification(twiddle_list, param_list):

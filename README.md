@@ -67,10 +67,32 @@ For an arbitrary chainable architecture, redundant or not, use `GBfactorize_auto
 the factorization back to the original one with the same approximation error
 (Remark 6.4). See `test_redundancy.py` for examples.
 
-The first factor need not have `a = 1` nor the last one `d = 1`: the product of the
-chain is then a block diagonal matrix (with `a` blocks, each a Kronecker product with
-the identity of size `d`), and the target must be given in twiddle format, of size
-`(a_1, d_L, b * p, c * q)` where `(a_1, b, c, d_L, p, q)` is the product of `gb_params`.
+The target can be any dense matrix, of size `(M, N)` or `(1, 1, M, N)`, whatever the
+chainable architecture. The first factor need not have `a = 1` nor the last one `d = 1`:
+the product of the chain is then not a full matrix, but a block diagonal matrix with `a`
+blocks, each a `b * p` by `c * q` block matrix of diagonal blocks of size `d`, where
+`(a, b, c, d, p, q)` is the product of `gb_params`. The entries of the target outside
+this support cannot be reached by any factors of this architecture, so they do not
+change the best factors: the algorithm ignores them, and their norm is a lower bound on
+the approximation error. Use `product_of_twiddles` to reconstruct (`densification`
+requires `a_1 = 1`):
+
+```python
+from src.GB_factorization import GBfactorize_auto
+from src.GB_operators import product_of_twiddles, twiddle_to_dense
+
+# Square-dyadic chain for N = 16 without its left factor: the product is diag(B1, B2)
+gb_params = [(2, 2, 2, 4, 1, 1), (4, 2, 2, 2, 1, 1), (8, 2, 2, 1, 1, 1)]
+
+factor_list = [f.factor for f in GBfactorize_auto(matrix, gb_params)]  # matrix: 16 x 16
+approximation = twiddle_to_dense(product_of_twiddles(factor_list, gb_params))  # 16 x 16
+```
+
+Here the approximation of a full matrix is at best its two diagonal blocks of size 8. To
+approximate the whole matrix, use a chain with `a_1 = d_L = 1`, for instance
+`[(1, 4, 4, 4, 1, 1), (4, 2, 2, 2, 1, 1), (8, 2, 2, 1, 1, 1)]`. The target can also be
+given in twiddle format, of size `(a, d, b * p, c * q)`; `dense_to_twiddle` converts a
+dense matrix to this format.
 
 ## Scripts to reproduce figures of the paper
 
